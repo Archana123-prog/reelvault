@@ -6,11 +6,11 @@ import { connectDB, disconnectDB } from './config/db.js';
 
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB
+// Connect to Neon DB (PostgreSQL)
 await connectDB();
 
 const server = app.listen(PORT, () => {
-  console.log(`[Server] ReelVault Backend running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  console.log(`[Server] ReelVault Backend (Neon DB Postgres) running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   console.log(`[Server] Health check endpoint: http://localhost:${PORT}/api/health`);
 });
 

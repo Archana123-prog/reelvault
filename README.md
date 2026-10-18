@@ -39,9 +39,9 @@ reelvault/
 │   ├── tailwind.config.js
 │   ├── vite.config.js
 │   └── package.json
-├── backend/              # Node.js + Express (REST API) + MongoDB Atlas (Mongoose)
+├── backend/              # Node.js + Express (REST API) + Neon DB (PostgreSQL)
 │   ├── src/
-│   │   ├── config/       # MongoDB connection with retry & dev fallback
+│   │   ├── config/       # Neon DB (PostgreSQL) connection with auto-table initialization
 │   │   ├── controllers/  # auth.controller.js, reel.controller.js, category.controller.js
 │   │   ├── middleware/   # JWT auth, errorHandler, Zod validate, rateLimiter
 │   │   ├── models/       # User, Reel, Category (compound indexes & full text search)

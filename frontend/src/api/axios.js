@@ -57,16 +57,18 @@ api.interceptors.response.use(
   (error) => {
     stopColdStartDetector();
 
-    // Auto logout on 401 Unauthorized
+    // Auto logout on 401 Unauthorized — but ONLY if not already on an auth page.
+    // On auth pages (login/register) we let the error bubble up so the form can
+    // display the real server message (e.g. "Invalid email or password") instead
+    // of losing it to a redirect.
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('reelvault_token');
-      localStorage.removeItem('reelvault_user');
-      
       const isAuthPage =
         window.location.pathname.startsWith('/login') ||
         window.location.pathname.startsWith('/register');
-      
+
       if (!isAuthPage) {
+        localStorage.removeItem('reelvault_token');
+        localStorage.removeItem('reelvault_user');
         window.location.href = '/login?expired=1';
       }
     }

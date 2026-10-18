@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
-import mongoSanitize from 'express-mongo-sanitize';
+
 
 import authRoutes from './routes/auth.routes.js';
 import reelRoutes from './routes/reel.routes.js';
@@ -53,8 +53,7 @@ app.use(compression());
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
-// Sanitize data against NoSQL query injection
-app.use(mongoSanitize());
+// Parameterized SQL queries natively sanitize all input against injection
 
 // HTTP request logger
 if (process.env.NODE_ENV === 'development') {

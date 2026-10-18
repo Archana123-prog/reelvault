@@ -8,33 +8,37 @@ export const errorHandler = (err, req, res, next) => {
   let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   let message = err.message || 'Internal Server Error';
 
-  // Handle Mongoose duplicate key error (code 11000)
-  if (err.code === 11000) {
+  // Handle PostgreSQL & MongoDB duplicate key error (code '23505' or 11000)
+  if (err.code === '23505' || err.code === 11000) {
     statusCode = 409;
-    const field = Object.keys(err.keyPattern || err.keyValue || {})[0];
-    if (field === 'url' || err.message.includes('url_1')) {
+    const detail = (err.detail || err.message || '').toLowerCase();
+    if (detail.includes('url')) {
       message = 'You already saved this reel';
-    } else if (field === 'email') {
+    } else if (detail.includes('email')) {
       message = 'An account with this email address already exists';
-    } else if (field === 'name' || err.message.includes('name_1')) {
+    } else if (detail.includes('name') || detail.includes('category')) {
       message = 'A category with this name already exists';
     } else {
-      message = `Duplicate field value entered for ${field || 'resource'}`;
+      message = 'A record with this information already exists';
     }
   }
 
-  // Handle Mongoose bad ObjectId (CastError)
-  if (err.name === 'CastError') {
+  // Handle PostgreSQL foreign key violation (code '23503')
+  if (err.code === '23503') {
     statusCode = 400;
-    message = `Invalid ID format for ${err.path}`;
+    message = 'Invalid reference: The associated category or user was not found';
   }
 
-  // Handle Mongoose validation errors
-  if (err.name === 'ValidationError') {
+  // Handle PostgreSQL invalid UUID / ID format (code '22P02')
+  if (err.code === '22P02' || err.name === 'CastError') {
     statusCode = 400;
-    message = Object.values(err.errors)
-      .map((val) => val.message)
-      .join(', ');
+    message = 'Invalid resource ID format';
+  }
+
+  // Handle Zod validation errors
+  if (err.name === 'ZodError') {
+    statusCode = 400;
+    message = err.errors?.[0]?.message || 'Validation error';
   }
 
   // Handle JWT errors

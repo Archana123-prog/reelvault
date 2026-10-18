@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import mongoose from 'mongoose';
 import { connectDB, disconnectDB } from './config/db.js';
 import { User } from './models/User.js';
 import { Category, DEFAULT_CATEGORIES } from './models/Category.js';
@@ -71,17 +70,21 @@ const seedData = async () => {
 
     console.log('[Seed] Setting up demo user...');
     const demoEmail = 'demo@reelvault.app';
+    const demoPassword = 'Demo@12345';
     let user = await User.findOne({ email: demoEmail });
 
     if (!user) {
       user = await User.create({
         name: 'Alex Mercer',
         email: demoEmail,
-        password: 'Password123'
+        password: demoPassword
       });
-      console.log(`[Seed] Created demo user: ${demoEmail} (Password: Password123)`);
+      console.log(`[Seed] Created demo user: ${demoEmail} (Password: ${demoPassword})`);
     } else {
-      console.log(`[Seed] Found existing demo user: ${demoEmail}`);
+      // Always reset demo user password so it matches the frontend demo button
+      user.password = demoPassword;
+      await user.save();
+      console.log(`[Seed] Updated demo user password: ${demoEmail}`);
     }
 
     // Ensure default categories exist for demo user

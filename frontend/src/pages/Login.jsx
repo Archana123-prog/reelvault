@@ -34,15 +34,18 @@ export const Login = () => {
       const from = location.state?.from?.pathname || '/';
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Login failed. Please check your credentials.');
+      // Prefer server-provided message, fall back gracefully
+      const serverMsg = err?.response?.data?.message;
+      const networkMsg = err?.message === 'Network Error' ? 'Cannot reach server. Make sure the backend is running.' : err?.message;
+      setError(serverMsg || networkMsg || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
   };
 
-  const fillDemoAccount = () => {
+  const fillDemoAccount = async () => {
     setEmail('demo@reelvault.app');
-    setPassword('Password123');
+    setPassword('Demo@12345');
     setError('');
   };
 
