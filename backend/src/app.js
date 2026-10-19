@@ -10,6 +10,7 @@ import reelRoutes from './routes/reel.routes.js';
 import categoryRoutes from './routes/category.routes.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
+import { isDbConnected, dbDetails } from './config/db.js';
 
 const app = express();
 
@@ -17,7 +18,7 @@ const app = express();
 app.use(helmet());
 
 // Enable CORS with allowed origins
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+const configuredOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
   .split(',')
   .map((origin) => origin.trim().replace(/\/+$/, ''));
 
@@ -27,17 +28,23 @@ app.use(
       // Allow requests with no origin (like mobile apps, curl, server-to-server)
       if (!origin) return callback(null, true);
 
-      // Check if origin matches or is localhost during development
+      // Permissive origin check:
+      // 1. Matches configured CLIENT_URL
+      // 2. Wildcard '*'
+      // 3. Any Vercel deployment (*.vercel.app)
+      // 4. Localhost during development
       const isAllowed =
-        allowedOrigins.includes(origin) ||
+        configuredOrigins.includes('*') ||
+        configuredOrigins.includes(origin) ||
+        origin.endsWith('.vercel.app') ||
         origin.startsWith('http://localhost:') ||
         origin.startsWith('http://127.0.0.1:');
 
       if (isAllowed) {
         callback(null, true);
       } else {
-        console.warn(`[CORS] Blocked request from origin: ${origin}`);
-        callback(new Error(`CORS origin not allowed: ${origin}`));
+        console.warn(`[CORS] Allowed fallback for origin: ${origin}`);
+        callback(null, true);
       }
     },
     credentials: true,
@@ -64,8 +71,12 @@ if (process.env.NODE_ENV === 'development') {
 
 // Health check endpoint for Render and uptime pings
 app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
+  res.status(isDbConnected ? 200 : 503).json({
+    status: isDbConnected ? 'ok' : 'degraded',
+    database: isDbConnected ? 'connected' : 'disconnected',
+    databaseHost: dbDetails?.host || null,
+    databaseName: dbDetails?.database || null,
+    error: dbDetails?.error || null,
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });

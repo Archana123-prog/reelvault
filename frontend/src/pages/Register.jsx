@@ -36,9 +36,16 @@ export const Register = () => {
       addToast({ message: 'Account created! 10 categories ready for you.' });
       navigate('/', { replace: true });
     } catch (err) {
-      setError(
-        err.response?.data?.message || err.message || 'Registration failed. Please try again.'
-      );
+      const serverMsg = err?.response?.data?.message;
+      let displayMsg = serverMsg;
+      if (!displayMsg) {
+        if (err.message === 'Network Error' || err.code === 'ECONNABORTED') {
+          displayMsg = 'Could not reach server. If your backend is on Render free tier, it may take ~45s to wake up from sleep. Please wait a moment and try again!';
+        } else {
+          displayMsg = err.message || 'Registration failed. Please try again.';
+        }
+      }
+      setError(displayMsg);
     } finally {
       setLoading(false);
     }

@@ -124,39 +124,76 @@ export const initTables = async () => {
   console.log('[Neon DB] ✅ Tables (users, categories, reels) and indexes verified successfully!');
 };
 
+export let isDbConnected = false;
+export let dbDetails = { host: null, database: null, error: null };
+
 /**
- * Connects to Neon DB with retry logic.
+ * Connects to Neon DB with retry logic and displays clear terminal status banners.
  */
 export const connectDB = async (retries = 3, delayMs = 2000) => {
   const connectionString = getConnectionString();
 
   if (!connectionString) {
-    console.warn('\n============================================================');
-    console.warn('⚠️  NEON DB NOT CONFIGURED YET');
-    console.warn('👉 Please paste your Neon DB connection string into backend/.env:');
-    console.warn('   DATABASE_URL=postgresql://user:password@ep-...neon.tech/neondb?sslmode=require');
-    console.warn('   Once saved, nodemon will automatically connect and create tables!');
-    console.warn('============================================================\n');
+    isDbConnected = false;
+    dbDetails.error = 'DATABASE_URL is missing or empty in backend/.env';
+
+    console.log('\n' + '='.repeat(68));
+    console.log('❌ DATABASE STATUS: NOT CONNECTED!');
+    console.log('⚠️  Reason: No PostgreSQL URL found in backend/.env');
+    console.log('👉 Action: Paste your Neon DB connection string into backend/.env:');
+    console.log('   DATABASE_URL=postgresql://user:pass@ep-...neon.tech/neondb?sslmode=require');
+    console.log('='.repeat(68) + '\n');
     return null;
+  }
+
+  // Parse host and database name for display
+  let hostName = 'Neon DB';
+  let dbName = 'neondb';
+  try {
+    const parsed = new URL(connectionString);
+    hostName = parsed.hostname || hostName;
+    dbName = parsed.pathname.replace(/^\//, '') || dbName;
+  } catch {
+    // Keep defaults
   }
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const activePool = getPool();
-      const res = await activePool.query('SELECT NOW()');
-      console.log(`[Neon DB] ✅ Connected successfully at ${res.rows[0].now}`);
+      const res = await activePool.query('SELECT NOW(), current_database()');
       await initTables();
+
+      isDbConnected = true;
+      dbDetails.host = hostName;
+      dbDetails.database = res.rows[0].current_database || dbName;
+      dbDetails.error = null;
+
+      console.log('\n' + '╔' + '═'.repeat(66) + '╗');
+      console.log('║  ✅ DATABASE STATUS : CONNECTED TO NEON DB (PostgreSQL)          ║');
+      console.log(`║  📍 Host            : ${dbDetails.host.padEnd(43)}║`);
+      console.log(`║  🗄️  Database        : ${dbDetails.database.padEnd(43)}║`);
+      console.log(`║  🕒 Server Time     : ${new Date(res.rows[0].now).toISOString().padEnd(43)}║`);
+      console.log('║  ⚡ All Tables       : VERIFIED & READY (users, categories, reels) ║');
+      console.log('╚' + '═'.repeat(66) + '╝\n');
+
       return activePool;
     } catch (err) {
       console.error(`[Neon DB] Connection attempt ${attempt}/${retries} failed: ${err.message}`);
       if (attempt < retries) {
         console.log(`[Neon DB] Retrying in ${delayMs / 1000}s...`);
         await new Promise((resolve) => setTimeout(resolve, delayMs));
+      } else {
+        isDbConnected = false;
+        dbDetails.error = err.message;
+
+        console.log('\n' + '='.repeat(68));
+        console.log('❌ DATABASE STATUS: NOT CONNECTED (CONNECTION FAILED)');
+        console.log(`⚠️  Error : ${err.message}`);
+        console.log('👉 Please check your DATABASE_URL in backend/.env');
+        console.log('='.repeat(68) + '\n');
       }
     }
   }
-
-  console.error('[Neon DB] Could not connect. Please check your DATABASE_URL in backend/.env.');
 };
 
 /**

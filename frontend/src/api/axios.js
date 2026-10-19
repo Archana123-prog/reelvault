@@ -1,11 +1,20 @@
 import axios from 'axios';
 
+const getBaseURL = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (!envUrl || envUrl.trim() === '' || envUrl.trim() === '/api') {
+    return '/api';
+  }
+  const clean = envUrl.trim().replace(/\/+$/, '');
+  return clean.endsWith('/api') ? clean : `${clean}/api`;
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json'
   },
-  timeout: 45000 // 45 seconds for cold start on Render free tier
+  timeout: 60000 // 60 seconds for Render free tier cold starts
 });
 
 // Cold-start notification timer
